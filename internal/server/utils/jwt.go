@@ -3,7 +3,7 @@ package utils
 import (
 	"fmt"
 	"github.com/golang-jwt/jwt"
-	log "gitlab.indev.by/pkg/go/logger"
+	log "github.com/sirupsen/logrus"
 	"gofermart/internal/server/models"
 	"strconv"
 	"time"

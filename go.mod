@@ -11,7 +11,6 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/sirupsen/logrus v1.9.3
-	gitlab.indev.by/pkg/go/logger v0.0.6
 )
 
 require (

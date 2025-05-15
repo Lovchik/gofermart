@@ -17,18 +17,27 @@ type Service struct {
 
 func (s *Service) Refresh(c *gin.Context) {
 	var response models.Response
-	header := c.GetHeader("Authorization")
+	header := c.GetHeader("Refresh")
 	if !utils.IsValidToken(header, "refresh") {
 		log.Info("Неверный токен")
 		c.JSON(http.StatusUnauthorized, response.ErrorResponse("Неверный токен"))
 		return
 	}
-	tokens, err := s.Store.Refresh(header)
+	id, err := utils.GetUserId(header)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.ErrorResponse(err.Error()))
+		return
 	}
-	c.JSON(http.StatusOK, response.NewWithMessage(tokens, ""))
-	return
+
+	tokens, err := utils.GenerateJWT(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ErrorResponse(err.Error()))
+		return
+	}
+
+	c.Header("Authorization", tokens.AccessToken)
+	c.Header("Refresh", tokens.RefreshToken)
+	c.JSON(http.StatusOK, nil)
 }
 
 func (s *Service) Login(c *gin.Context) {
@@ -45,11 +54,50 @@ func (s *Service) Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.ErrorResponse("Должны быть заполнены логин и пароль"))
 		return
 	}
-	tokens, err := s.Store.Login(credentials)
+	user := s.Store.GetUserByCreds(credentials)
+
+	if user.ID == 0 {
+		c.JSON(http.StatusUnauthorized, response.ErrorResponse("Неверная пара логин/пароль"))
+		return
+	}
+	tokens, err := utils.GenerateJWT(user.ID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.ErrorResponse(err.Error()))
 		return
 	}
-	c.JSON(http.StatusOK, response.NewWithMessage(tokens, "Пользователь успешно авторизирован"))
-	return
+	c.Header("Authorization", tokens.AccessToken)
+	c.Header("Refresh", tokens.RefreshToken)
+	c.JSON(http.StatusOK, nil)
+}
+
+func (s *Service) RegisterUser(c *gin.Context) {
+	var response models.Response
+	var request models.LoginRequest
+	err := c.ShouldBind(&request)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ErrorResponse(err.Error()))
+		return
+	}
+
+	exists := s.Store.IsUserExists(request)
+	if exists {
+		c.JSON(http.StatusConflict, nil)
+		return
+	}
+
+	user, err := s.Store.CreateUser(request)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.ErrorResponse(err.Error()))
+		return
+	}
+
+	tokens, err := utils.GenerateJWT(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.ErrorResponse(err.Error()))
+		return
+	}
+
+	c.Header("Authorization", tokens.AccessToken)
+	c.Header("Refresh", tokens.RefreshToken)
+	c.JSON(http.StatusOK, response.NewWithMessage(request, ""))
 }

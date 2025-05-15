@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-	log "gitlab.indev.by/pkg/go/logger"
+	log "github.com/sirupsen/logrus"
 	"gofermart/internal/server/config"
 )
 
@@ -23,11 +23,6 @@ func init() {
 	if privateKeyBlock == nil {
 		log.Fatal("Decoding private key failed")
 	}
-
-	if privateKeyBlock == nil {
-		log.Fatal("Decoding private key failed")
-	}
-
 	privateKey, err := x509.ParseECPrivateKey(privateKeyBlock.Bytes)
 	if err != nil {
 		log.Fatal("Parsing private key failed")
@@ -44,9 +39,6 @@ func init() {
 	publicKeyBlock, _ := pem.Decode(decodedBytes)
 	if publicKeyBlock == nil {
 		log.Fatal("Decoding pem block failed")
-	}
-	if publicKeyBlock == nil {
-		log.Fatal("Decoding public key failed")
 	}
 	publicKeyInterface, err := x509.ParsePKIXPublicKey(publicKeyBlock.Bytes)
 	if err != nil {
